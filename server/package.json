@@ -1,0 +1,3 @@
+{ "name":"habitflow-server","version":"1.0.0","type":"module",
+  "scripts":{"start":"node index.js","dev":"node --watch index.js"},
+  "dependencies":{"cookie-parser":"^1.4.6","cors":"^2.8.5","dotenv":"^16.4.5","express":"^4.19.2","express-rate-limit":"^7.4.0","google-auth-library":"^9.14.0","helmet":"^7.1.0","jsonwebtoken":"^9.0.2","mongoose":"^8.5.0"} }
