@@ -13,7 +13,7 @@ export function Privacy() {
       <h3>Where it is stored</h3>
       <p>Data is stored in a MongoDB Atlas database. Only you can see your own data.</p>
       <h3>Deleting your data</h3>
-      <p>To have your account and data deleted, email YOUR_EMAIL_HERE.</p>
+      <p>To have your account and data deleted, email kiranbantwal41@gmail.com.</p>
       <p><a href="/">Back to HabitFlow</a></p>
     </div>
   );
