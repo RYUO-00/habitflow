@@ -1,4 +1,4 @@
-// Finance tracker: add income/expenses, see totals and the transaction list.
+// Finance tracker restyled in dark neon theme.
 import { useEffect, useState } from "react";
 import { api, ymd } from "../api.js";
 
@@ -22,10 +22,19 @@ export default function Finance() {
   return (
     <>
       <h2>Finance tracker</h2>
-      <div className="grid">
-        <div className="card"><span className="mu">Income</span><div className="big in">{inr(sum("income"))}</div></div>
-        <div className="card"><span className="mu">Expenses</span><div className="big ex">{inr(sum("expense"))}</div></div>
-        <div className="card"><span className="mu">Balance</span><div className="big">{inr(sum("income") - sum("expense"))}</div></div>
+      <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
+        <div className="card">
+          <span className="mu" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: ".08em" }}>Income</span>
+          <div className="big in">{inr(sum("income"))}</div>
+        </div>
+        <div className="card">
+          <span className="mu" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: ".08em" }}>Expenses</span>
+          <div className="big ex">{inr(sum("expense"))}</div>
+        </div>
+        <div className="card">
+          <span className="mu" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: ".08em" }}>Balance</span>
+          <div className="big" style={{ color: sum("income") - sum("expense") >= 0 ? "var(--teal)" : "var(--pink)" }}>{inr(sum("income") - sum("expense"))}</div>
+        </div>
       </div>
       <div className="card row">
         <select value={f.type} onChange={set("type")}><option value="expense">Expense</option><option value="income">Income</option></select>
@@ -38,9 +47,14 @@ export default function Finance() {
       <div className="card">
         {list.length === 0 && <p className="mu">No transactions yet.</p>}
         {list.map((t) => (
-          <div className="tx" key={t._id}>
-            <div><b>{t.category}</b> <span className="mu">{t.note} · {t.date}</span></div>
-            <div><span className={t.type === "income" ? "in" : "ex"}>{t.type === "income" ? "+" : "−"}{inr(t.amount)}</span> <button className="x" onClick={() => remove(t._id)}>×</button></div>
+          <div className="tx" key={t._id} style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: 10, borderBottom: "1px solid var(--border)" }}>
+            <div>
+              <b>{t.category}</b> <span className="mu">{t.note} · {t.date}</span>
+            </div>
+            <div>
+              <span className={t.type === "income" ? "in" : "ex"}>{t.type === "income" ? "+" : "−"}{inr(t.amount)}</span>
+              <button className="x" onClick={() => remove(t._id)} aria-label="Delete">×</button>
+            </div>
           </div>
         ))}
       </div>
