@@ -1,115 +1,60 @@
-// Monthly habit tracker: everything from Screenshot 1, wired to real data.
-import { useEffect, useState, useCallback } from "react";
+// Monthly habit grid: add habits, tick days.
+import { useEffect, useState } from "react";
 import { api, ymd } from "../api.js";
-import StatBar from "../components/StatBar.jsx";
-import HabitGrid from "../components/HabitGrid.jsx";
-import AnalysisPanel from "../components/AnalysisPanel.jsx";
-import HeatStrip from "../components/HeatStrip.jsx";
-import ProgressLineChart from "../components/ProgressLineChart.jsx";
-import LevelUpBanner from "../components/LevelUpBanner.jsx";
 
-export default function MonthlyTracker() {
-  const [month, setMonth] = useState(ymd(new Date()).slice(0, 7));
+export default function Habits() {
+  const [month, setMonth] = useState(ymd(new Date()).slice(0, 7)); // "YYYY-MM"
   const [habits, setHabits] = useState([]);
-  const [stats, setStats] = useState(null);
+  const [logs, setLogs] = useState([]);
   const [name, setName] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [prevLevel, setPrevLevel] = useState(1);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [h, s] = await Promise.all([
-        api("/habits"),
-        api("/stats/month?month=" + month),
-      ]);
-      setHabits(h);
-      setStats({ ...s, month, year: month.slice(0, 4) });
-    } finally {
-      setLoading(false);
-    }
-  }, [month]);
+  const loadLogs = async () => setLogs(await api("/logs?month=" + month));
+  useEffect(() => { api("/habits").then(setHabits); }, []);
+  useEffect(() => { loadLogs(); }, [month]);
 
-  useEffect(() => { load(); }, [load]);
-
-  // Compute level from total XP (simplified: 500 per level)
-  const totalXp = stats ? (stats.completedTotal || 0) * 10 : 0;
-  const currentLevel = Math.floor(totalXp / 500) + 1;
-  const levelUp = currentLevel > prevLevel;
-  useEffect(() => { if (stats && !loading) setPrevLevel(currentLevel); }, [currentLevel, stats, loading]);
-
-  const shift = (n) => {
-    const [y, m] = month.split("-").map(Number);
-    const d = new Date(y, m - 1 + n, 1);
-    setMonth(ymd(d).slice(0, 7));
-  };
+  const [y, m] = month.split("-").map(Number);
+  const count = new Date(y, m, 0).getDate();
+  const days = [...Array(count)].map((_, i) => month + "-" + String(i + 1).padStart(2, "0"));
+  const isDone = (h, d) => logs.some((l) => l.habitId === h && l.date === d);
+  const today = ymd(new Date());
 
   const add = async () => {
     if (!name.trim()) return;
-    const h = await api("/habits", "POST", { name: name.trim(), color: "#c77dff" });
-    setHabits([...habits, h]);
-    setName("");
+    const h = await api("/habits", "POST", { name });
+    setHabits([...habits, h]); setName("");
   };
-
-  const toggle = useCallback(async (id, d) => {
-    // Optimistic update
-    const doneBefore = stats?.daily?.find((day) => day.date === d)?.completed || 0;
-    try {
-      const res = await api(`/habits/${id}/toggle`, "POST", { date: d });
-      // Refresh stats to keep consistent
-      load();
-    } catch (e) {
-      console.error("Toggle failed", e);
-      load(); // rollback by reloading
-    }
-  }, [load, stats]);
-
-  if (loading && !stats) return <div className="card"><p className="mu">Loading tracker...</p></div>;
+  const remove = async (id) => {
+    if (!confirm("Delete this habit and its history?")) return;
+    await api("/habits/" + id, "DELETE"); setHabits(habits.filter((h) => h._id !== id));
+  };
+  const toggle = async (id, d) => { await api(`/habits/${id}/toggle`, "POST", { date: d }); loadLogs(); };
+  const shift = (n) => setMonth(ymd(new Date(y, m - 1 + n, 1)).slice(0, 7));
 
   return (
     <>
-      <h2>Monthly Habit Tracker</h2>
-      <StatBar stats={{ ...stats, year: month.slice(0, 4), month: month }} />
-      <div className="row" style={{ marginBottom: 8, gap: 12 }}>
-        <button onClick={() => shift(-1)}>← Previous</button>
-        <b style={{ fontSize: 18 }}>{month}</b>
-        <button onClick={() => shift(1)}>Next →</button>
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="New habit, e.g. Read 20 pages" style={{ flex: 1, minWidth: 220 }} />
+      <h2>Daily tracking</h2>
+      <div className="row">
+        <button onClick={() => shift(-1)}>←</button><b>{month}</b><button onClick={() => shift(1)}>→</button>
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="New habit, e.g. Read 20 pages" />
         <button className="primary" onClick={add}>Add habit</button>
       </div>
-      {levelUp && <LevelUpBanner level={currentLevel} />}
-      <div style={{ display: "grid", gap: 16, gridTemplateColumns: "1fr 340px" }}>
-        <div>
-          <HabitGrid habits={habits} month={month} stats={stats} toggle={toggle} />
-          <HeatStrip daily={stats?.daily || []} />
-          <ProgressLineChart daily={stats?.daily || []} />
-        </div>
-        <aside>
-          <AnalysisPanel habits={habits} stats={stats} />
-          <div className="card">
-            <h4 style={{ margin: "0 0 8px" }}>Top 5 Strongest</h4>
-            {habits.map((h) => {
-              const count = stats?.counts?.[h._id] || 0;
-              return (
-                <div key={h._id} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: "1px solid var(--border)", alignItems: "center" }}>
-                  <span style={{ fontWeight: 600 }}><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: h.color || "var(--violet)", marginRight: 6 }} />{h.name}</span>
-                  <b>{count}</b>
-                </div>
-              );
-            }).slice(0, 5)}
-          </div>
-          <div className="card">
-            <h4 style={{ margin: "0 0 8px" }}>Needs Focus</h4>
-            {habits.map((h) => {
-              const count = stats?.counts?.[h._id] || 0;
-              return count === 0 ? (
-                <div key={h._id} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: "1px solid var(--border)", color: "var(--pink)", fontWeight: 600 }}>
-                  {h.name} <span>{count}</span>
-                </div>
-              ) : null;
-            }).filter(Boolean).slice(0, 5)}
-          </div>
-        </aside>
+      <div className="card scroll">
+        {habits.length === 0 ? <p className="mu">No habits yet. Add your first one above.</p> : (
+          <table>
+            <thead><tr><th className="name">Habit</th>{days.map((d) => <th key={d}>{+d.slice(8)}</th>)}<th>Done</th></tr></thead>
+            <tbody>
+              {habits.map((h) => (
+                <tr key={h._id}>
+                  <td className="name">{h.name} <button className="x" onClick={() => remove(h._id)}>×</button></td>
+                  {days.map((d) => (
+                    <td key={d}><button className={"cb" + (isDone(h._id, d) ? " on" : "") + (d > today ? " fut" : "")} onClick={() => toggle(h._id, d)}>{isDone(h._id, d) ? "✓" : ""}</button></td>
+                  ))}
+                  <td><b>{logs.filter((l) => l.habitId === h._id).length}</b></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </>
   );

@@ -1,4 +1,4 @@
-// Landing + login page. Restyled with dark neon theme.
+// Landing + login page. Renders Google's official sign-in button.
 import { useEffect, useRef } from "react";
 import { api } from "../api.js";
 
@@ -15,12 +15,10 @@ export default function Login({ onLogin }) {
     if (window.google) init(); else window.addEventListener("load", init);
   }, []);
   return (
-    <div className="hero" style={{ maxWidth: 600, margin: "80px auto", padding: "0 16px", textAlign: "center" }}>
-      <h1 style={{ fontSize: "clamp(2.2rem, 7vw, 3.4rem)", lineHeight: 1.1, letterSpacing: -0.04, background: "linear-gradient(135deg, var(--violet), var(--cyan))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-        Build better habits.<br />Master your money.
-      </h1>
-      <p style={{ color: "var(--muted)", fontSize: 18 }}>Track daily habits, plan your week, and see your progress in glowing charts. Your data syncs across all devices.</p>
-      <div ref={btn} style={{ display: "inline-block", marginTop: 24 }} />
+    <div className="hero">
+      <h1>Build better habits.<br />Master your money.</h1>
+      <p>Track daily habits, log income and expenses, and see your progress in charts. Your data syncs across all your devices.</p>
+      <div ref={btn} style={{ display: "inline-block" }}></div>
     </div>
   );
 }
